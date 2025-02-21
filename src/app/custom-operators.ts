@@ -5,6 +5,8 @@ import {
   tap,
   Observable,
   switchMap,
+  take,
+  from,
 } from 'rxjs';
 
 type VoidFunc<V> = (v: V) => void;
@@ -76,7 +78,8 @@ export function bufferUntilTruthy<T>(
             currentBuffer.push(value);
           }),
           switchMap(() => {
-            return closingNotifier;
+            // ObservableInput<T> is a broader type that can be an Observable<T>, a Promise<T>, an ArrayLike<T>, or an AsyncIterable<T>. However, only Observable<T> has the pipe method. To ensure closingNotifier has the pipe method, explicitly convert it into an Observable using from(closingNotifier).
+            return from(closingNotifier).pipe(take(1));
           })
         )
         .subscribe({

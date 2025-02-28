@@ -43,27 +43,45 @@ export const log1: <T>(f?: VoidFunc<T>) => MonoTypeOperatorFunction<T> = (
 
 type OperatorFunction<T, R> = (source: Observable<T>) => Observable<R>;
 
-// export const bufferUntilValueTruthy: <T>(
-//   closingNotifier: ObservableInput<boolean>
-// ) =>  OperatorFunction<T, T[]> = <T>(
-//   closingNotifier: ObservableInput<boolean>
-// ) => {
-//   return (source:Observable<T>) => {
-//     return new Observable<T>((destination) => {
-//       const currentBuffer: T[] = [];
+export const bufferUntilTruthy1 = <T>(
+  closingNotifier: ObservableInput<boolean>
+): OperatorFunction<T, T[]> => {
+  return (source: Observable<T>) => {
+    return new Observable((destination) => {
+      let currentBuffer: T[] = [];
 
-//       const sourceSubscription = source.subscribe({
-//         next: (source) => {
-//           currentBuffer.push(source);
+      const sourceSubscription = source
+        .pipe(
+          tap((value) => {
+            currentBuffer.push(value);
+          }),
+          switchMap(() => {
+            return closingNotifier;
+          })
+        )
+        .subscribe({
+          next: (value) => {
+            if (value) {
+              const b = currentBuffer;
+              //   currentBuffer.splice(0, currentBuffer.length);
+              currentBuffer = [];
+              destination.next(b);
+            }
+          },
+          complete: () => {
+            destination.next(currentBuffer);
+            destination.complete();
+          },
+        });
 
-//         },
-//         complete:()=>{
-//             destination.next(currentBuffer)
-//         }
-//       });
-//     });
-//   };
-// };
+      return () => {
+        // currentBuffer.splice(0, currentBuffer.length);
+        currentBuffer = [];
+        sourceSubscription.unsubscribe();
+      };
+    });
+  };
+};
 
 export function bufferUntilTruthy<T>(
   closingNotifier: ObservableInput<boolean>
